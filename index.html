@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="./support.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <x-dc>
@@ -681,10 +682,17 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
           </div>
         </sc-if>
 
-        <div class="field">
+        <sc-if value="{{authResetRequest}}" hint-placeholder-val="{{false}}">
+          <div class="text-muted" style="font-size:13px;line-height:1.5;padding:12px 14px;background:var(--color-surface);border:1px solid var(--color-divider)">We’ll email you a secure link. For security, we do not reveal whether an account exists.</div>
+        </sc-if>
+
+        <sc-if value="{{authResetRequest}}" hint-placeholder-val="{{false}}">
+        </sc-if>
+
+        <div class="field" style="{{authResetRequest?'display:none':''}}">
           <label for="auth-password">Password</label>
           <div style="position:relative">
-            <input id="auth-password" class="input" type="{{passwordInputType}}" autocomplete="{{passwordAutocomplete}}" placeholder="Enter your password" value="{{authPassword}}" onInput="{{onAuthPassword}}" required style="padding-right:46px">
+            <input id="auth-password" class="input" type="{{passwordInputType}}" autocomplete="{{passwordAutocomplete}}" placeholder="Enter your password" value="{{authPassword}}" onInput="{{onAuthPassword}}" {{authResetRequest?'disabled':''}} required style="padding-right:46px">
             <button type="button" class="btn btn-ghost btn-icon" onClick="{{togglePassword}}" aria-label="{{passwordAria}}" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);color:var(--color-text)">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="{{eyePath1}}"></path><path d="{{eyePath2}}"></path>
@@ -713,8 +721,12 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
           </div>
         </sc-if>
 
-        <button type="submit" class="btn btn-primary blueprint" style="width:100%;padding:13px;font-size:16px">
-          {{authSubmitLabel}}
+        <sc-if value="{{authMessage}}" hint-placeholder-val="{{false}}">
+          <div role="alert" style="padding:12px 14px;border:1px solid {{authMessage.type==='success'?'var(--color-accent-300)':'var(--color-accent-300)'}};background:{{authMessage.type==='success'?'var(--color-accent-100)':'var(--color-surface)'}};font-size:13px;line-height:1.45;color:var(--color-text)">{{authMessage.text}}</div>
+        </sc-if>
+
+        <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">
+          {{authBusy?'Please wait…':authSubmitLabel}}
           <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
         </button>
       </form>
@@ -870,12 +882,84 @@ const FAIL={
 };
 const money=n=>n===0?'$0':'$'+n.toFixed(2);
 class Component extends DCLogic {
-  state={screen:'landing',authMode:'login',authEmail:'',authName:'',authPassword:'',authConfirm:'',showPassword:false,showConfirmPassword:false,credits:null,used:8,person:null,garment:null,gTab:'upload',urlText:'',urlLoading:false,pErr:null,gErr:null,dragP:false,dragG:false,results:null,filter:'all',view:'compare',split:50,menuOpen:false,acctOpen:false,modal:null,pack:'creator',paying:false,toasts:[],w:1200,failKind:null,attempt:0,confirm:null,currentId:null,priv:{autoDelete:true,training:false}};
+  state={screen:'landing',authMode:'login',authEmail:'',authName:'',authPassword:'',authConfirm:'',showPassword:false,showConfirmPassword:false,authBusy:false,authMessage:null,credits:null,used:8,person:null,garment:null,gTab:'upload',urlText:'',urlLoading:false,pErr:null,gErr:null,dragP:false,dragG:false,results:null,filter:'all',view:'compare',split:50,menuOpen:false,acctOpen:false,modal:null,pack:'creator',paying:false,toasts:[],w:1200,failKind:null,attempt:0,confirm:null,currentId:null,priv:{autoDelete:true,training:false},session:null,user:null};
   rootRef=React.createRef(); howRef=React.createRef(); pIn=React.createRef(); gIn=React.createRef();
   componentDidMount(){
     const el=this.rootRef.current; if(el&&window.ResizeObserver){this.ro=new ResizeObserver(e=>{const w=e[0].contentRect.width; if(Math.abs(w-this.state.w)>1)this.setState({w});}); this.ro.observe(el);}
     this.onDoc=e=>{if(this.state.acctOpen&&!e.target.closest('[aria-label="Account menu"]')&&!e.target.closest('.elev-md'))this.setState({acctOpen:false});};
     document.addEventListener('click',this.onDoc);
+    this.initSupabaseAuth();
+  }
+  async initSupabaseAuth(){
+    if(!window.supabase?.createClient)return;
+    this.supabase=window.supabase.createClient('https://pbthnewtixzwwoivgavt.supabase.co','sb_publishable_s899D-cKO_R00WW0V8akPA_yB3K4cd1',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    const {data}=await this.supabase.auth.getSession();
+    if(data?.session)this.applyAuthSession(data.session);
+    const {data:listener}=this.supabase.auth.onAuthStateChange((event,session)=>{
+      this.applyAuthSession(session);
+      if(event==='PASSWORD_RECOVERY'){
+        this.setState({screen:'auth',authMode:'resetUpdate',authPassword:'',authConfirm:'',authMessage:null});
+      }
+    });
+    this.authSubscription=listener?.subscription;
+  }
+  applyAuthSession(session){
+    const user=session?.user||null;
+    this.setState({session:session||null,user,authEmail:user?.email||this.state.authEmail});
+  }
+  authRedirectUrl(){
+    return window.location.origin+window.location.pathname;
+  }
+  async submitAuthAction(){
+    if(!this.supabase)return this.setState({authMessage:{type:'error',text:'Supabase Auth is not available. Please refresh the page.'}});
+    const s=this.state,email=s.authEmail.trim(),password=s.authPassword,confirm=s.authConfirm;
+    if(!email)return this.setState({authMessage:{type:'error',text:'Please enter your email address.'}});
+    if(s.authMode==='signup'&&s.authName.trim().length<2)return this.setState({authMessage:{type:'error',text:'Please enter your full name.'}});
+    if((s.authMode==='login'||s.authMode==='signup'||s.authMode==='resetUpdate')&&!password)return this.setState({authMessage:{type:'error',text:'Please enter your password.'}});
+    if((s.authMode==='signup'||s.authMode==='resetUpdate')&&password!==confirm)return this.setState({authMessage:{type:'error',text:'Passwords do not match.'}});
+    if((s.authMode==='signup'||s.authMode==='resetUpdate')&&password.length<6)return this.setState({authMessage:{type:'error',text:'Password must be at least 6 characters.'}});
+    this.setState({authBusy:true,authMessage:null});
+    try{
+      if(s.authMode==='signup'){
+        const {data,error}=await this.supabase.auth.signUp({email,password,options:{data:{name:s.authName.trim()},emailRedirectTo:this.authRedirectUrl()}});
+        if(error)throw error;
+        if(data.session){this.setState({authBusy:false,authMessage:{type:'success',text:'Account created successfully. You are now signed in.'}});this.go('landing');}
+        else this.setState({authBusy:false,authMessage:{type:'success',text:'Account created. Check your email to confirm your account, then sign in.'}});
+      }else if(s.authMode==='login'){
+        const {error}=await this.supabase.auth.signInWithPassword({email,password});
+        if(error)throw error;
+        this.setState({authBusy:false,authMessage:{type:'success',text:'Signed in successfully.'}});
+        this.go('landing');
+      }else if(s.authMode==='resetRequest'){
+        const {error}=await this.supabase.auth.resetPasswordForEmail(email,{redirectTo:this.authRedirectUrl()});
+        if(error)throw error;
+        this.setState({authBusy:false,authMessage:{type:'success',text:'If an account exists for this email, a password reset link has been sent.'}});
+      }else if(s.authMode==='resetUpdate'){
+        const {error}=await this.supabase.auth.updateUser({password});
+        if(error)throw error;
+        this.setState({authBusy:false,authMessage:{type:'success',text:'Your password has been updated successfully.'},authPassword:'',authConfirm:''});
+        setTimeout(()=>this.go('landing'),700);
+      }
+    }catch(err){
+      this.setState({authBusy:false,authMessage:{type:'error',text:this.authError(err)}});
+    }
+  }
+  authError(err){
+    const m=String(err?.message||'').toLowerCase();
+    if(m.includes('invalid login credentials'))return 'Email or password is incorrect.';
+    if(m.includes('email not confirmed'))return 'Please confirm your email address before signing in.';
+    if(m.includes('password should be at least'))return 'Password must be at least 6 characters.';
+    if(m.includes('rate limit'))return 'Too many attempts. Please wait a moment and try again.';
+    if(m.includes('invalid email'))return 'Please enter a valid email address.';
+    return err?.message||'Something went wrong. Please try again.';
+  }
+  async signOut(){
+    if(!this.supabase)return;
+    const {error}=await this.supabase.auth.signOut({scope:'local'});
+    if(error)return this.setState({authMessage:{type:'error',text:this.authError(error)}});
+    this.setState({session:null,user:null,credits:null,results:null,person:null,garment:null,authMessage:null,acctOpen:false});
+    this.go('landing');
+    this.toast('You have been signed out.');
   }
   componentWillUnmount(){this.ro&&this.ro.disconnect();document.removeEventListener('click',this.onDoc);clearTimeout(this.t);}
   get credits(){return this.state.credits??(this.props.startingCredits??12);}
@@ -966,19 +1050,20 @@ class Component extends DCLogic {
       isMobile,isDesktop:!isMobile,mobileMenuOpen:isMobile&&s.menuOpen,acctOpen:s.acctOpen,is,navItems,credits,used:s.used,creditsLabel,
       showFooter:!['processing'].includes(s.screen),
       goLanding:nav('landing'),goWorkspace:nav('workspace'),goCredits:nav('credits'),goPricing:nav('pricing'),goResults:nav('results'),goAccount:nav('account'),goStates:nav('states'),goHow,
-      goAuth:()=>this.go('auth',{authMode:'login',authPassword:'',authConfirm:'',authName:''}),
+      goAuth:()=>this.go('auth',{authMode:'login',authPassword:'',authConfirm:'',authName:'',authMessage:null}),
+      signOut:()=>this.signOut(),
       goSaved:()=>this.go('results',{filter:'saved'}),
       toggleMenu:()=>this.setState({menuOpen:!s.menuOpen}),toggleAcct:()=>this.setState({acctOpen:!s.acctOpen}),
-      acctItems:[['Account','account'],['My Results','results'],['Credits & billing','credits'],['UI states','states'],['Sign out','landing']].map(([label,k])=>({label,onClick:()=>{this.go(k);if(label==='Sign out')this.toast('Signed out (prototype)');}})),
-      authLogin:s.authMode==='login',authSignup:s.authMode==='signup',
-      authModeLabel:s.authMode==='login'?'Welcome back':'Create your account',
-      authTitle:s.authMode==='login'?'Sign In':'Sign Up',
-      authSubtitle:s.authMode==='login'?'Sign in to continue to your Drape workspace.':'Create your Drape account and get started with your free credits.',
-      authSubmitLabel:s.authMode==='login'?'Sign In':'Create Account',
-      authSwitchLabel:s.authMode==='login'?'Create a new account':'Already have an account? Sign In',
-      authEmail:s.authEmail,authName:s.authName||'',authPassword:s.authPassword,authConfirm:s.authConfirm,
-      onAuthEmail:e=>this.setState({authEmail:e.target.value}),onAuthName:e=>this.setState({authName:e.target.value}),
-      onAuthPassword:e=>this.setState({authPassword:e.target.value}),onAuthConfirm:e=>this.setState({authConfirm:e.target.value}),
+      acctItems:[['Account','account'],['My Results','results'],['Credits & billing','credits'],['UI states','states'],['Sign out','landing']].map(([label,k])=>({label,onClick:()=>{if(label==='Sign out')this.signOut();else this.go(k);}})),
+      authLogin:s.authMode==='login',authSignup:s.authMode==='signup',authResetRequest:s.authMode==='resetRequest',authResetUpdate:s.authMode==='resetUpdate',
+      authModeLabel:s.authMode==='login'?'Welcome back':s.authMode==='signup'?'Create your account':s.authMode==='resetRequest'?'Reset your password':'Choose a new password',
+      authTitle:s.authMode==='login'?'Sign In':s.authMode==='signup'?'Sign Up':s.authMode==='resetRequest'?'Reset Password':'New Password',
+      authSubtitle:s.authMode==='login'?'Sign in to continue to your Drape workspace.':s.authMode==='signup'?'Create your Drape account and get started with your free credits.':s.authMode==='resetRequest'?'Enter your email and we’ll send you a secure reset link.':'Enter a new password for your Drape account.',
+      authSubmitLabel:s.authMode==='login'?'Sign In':s.authMode==='signup'?'Create Account':s.authMode==='resetRequest'?'Send Reset Link':'Update Password',
+      authSwitchLabel:s.authMode==='login'?'Create a new account':s.authMode==='signup'?'Already have an account? Sign In':'Back to Sign In',
+      authEmail:s.authEmail,authName:s.authName||'',authPassword:s.authPassword,authConfirm:s.authConfirm,authBusy:s.authBusy,authMessage:s.authMessage,
+      onAuthEmail:e=>this.setState({authEmail:e.target.value,authMessage:null}),onAuthName:e=>this.setState({authName:e.target.value,authMessage:null}),
+      onAuthPassword:e=>this.setState({authPassword:e.target.value,authMessage:null}),onAuthConfirm:e=>this.setState({authConfirm:e.target.value,authMessage:null}),
       passwordInputType:s.showPassword?'text':'password',confirmInputType:s.showConfirmPassword?'text':'password',
       passwordAutocomplete:s.authMode==='login'?'current-password':'new-password',
       passwordAria:s.showPassword?'Hide password':'Show password',
@@ -987,11 +1072,11 @@ class Component extends DCLogic {
       eyePath2:s.showPassword?'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6':'M9.5 9.5a3 3 0 0 1 4.24 4.24',
       confirmEyePath1:s.showConfirmPassword?'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12':'M2 2l20 20',
       confirmEyePath2:s.showConfirmPassword?'M12 9a3 3 0 1 0 0 6 3 3 0 0 0-3-6':'M9.5 9.5a3 3 0 0 1 4.24 4.24',
-      switchAuthMode:()=>this.setState({authMode:s.authMode==='login'?'signup':'login',authPassword:'',authConfirm:''}),
+      switchAuthMode:()=>this.setState({authMode:s.authMode==='signup'||s.authMode==='resetRequest'||s.authMode==='resetUpdate'?'login':'signup',authPassword:'',authConfirm:'',authMessage:null}),
       togglePassword:()=>this.setState({showPassword:!s.showPassword}),
       toggleConfirmPassword:()=>this.setState({showConfirmPassword:!s.showConfirmPassword}),
-      submitAuth:e=>{pv(e);if(!s.authEmail.trim()||!s.authPassword)return this.toast('Please complete the required fields');if(s.authMode==='signup'&&s.authPassword!==s.authConfirm)return this.toast('Passwords do not match');this.toast(s.authMode==='login'?'Login form ready for Supabase Auth':'Sign-up form ready for Supabase Auth');},
-      forgotPassword:()=>this.toast('Password reset will be connected to Supabase Auth next.'),
+      submitAuth:e=>{pv(e);this.submitAuthAction();},
+      forgotPassword:()=>this.setState({authMode:'resetRequest',authPassword:'',authConfirm:'',authMessage:null}),
       steps:[{n:'01',title:'Upload your photo',body:'A clear, front-facing photo in good light. JPG, PNG or WEBP.'},{n:'02',title:'Add a clothing item',body:'Upload a product image or paste its link from any store.'},{n:'03',title:'See it on you',body:'Get a realistic preview in seconds. Download it, save it, or try another.'}],
       // workspace
       noPerson:!p,hasPerson:!!p,pSample:p&&p.kind==='sample',pUpload:p&&p.kind!=='sample',pSrc:p&&p.src,pSrcBg:p&&p.src?`url("${p.src}")`:'none',pName:p&&p.name,
