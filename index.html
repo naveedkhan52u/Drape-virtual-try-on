@@ -924,6 +924,9 @@ class Component extends DCLogic {
     });
     this.authSubscription=listener?.subscription;
   }
+  authRedirectUrl(){
+    return 'https://drape-virtual-try-on-project.vercel.app/';
+  }
   applyAuthSession(session){
     const user=session?.user||null;
     this.setState({session:session||null,user,authEmail:user?.email||this.state.authEmail});
