@@ -737,8 +737,7 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
         </sc-if>
 
         <sc-if value="{{authLogin}}" hint-placeholder-val="{{false}}">
-          <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">{{authBusy?'Please wait…':'Sign In'}}<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
-        </sc-if>
+          <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">Send Reset Link<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></sc-if>
         <sc-if value="{{authSignup}}" hint-placeholder-val="{{false}}">
           <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">{{authBusy?'Please wait…':'Sign Up'}}<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
         </sc-if>
@@ -746,8 +745,7 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
           <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">{{authBusy?'Please wait…':'Send Reset Link'}}<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
         </sc-if>
         <sc-if value="{{authResetUpdate}}" hint-placeholder-val="{{false}}">
-          <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">{{authBusy?'Please wait…':'Update Password'}}<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
-        </sc-if>
+          <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">Update Password<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></sc-if>
       </form>
 
       <div style="display:flex;align-items:center;gap:12px;margin:24px 0 18px;color:var(--color-muted)">
