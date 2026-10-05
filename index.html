@@ -730,7 +730,7 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
         </sc-if>
 
         <sc-if value="{{authMessage}}" hint-placeholder-val="{{false}}">
-          <div role="alert" style="padding:12px 14px;border:1px solid var(--color-accent-300);background:{{authMessage.type==='success'?'var(--color-accent-100)':'var(--color-surface)'}};font-size:13px;line-height:1.45;color:var(--color-text)">{{authMessage.text}}</div>
+          <div role="alert" style="padding:12px 14px;border:1px solid {{authMessage.type==='error'?'#c62828':'var(--color-accent-300)'}};background:{{authMessage.type==='success'?'var(--color-accent-100)':authMessage.type==='error'?'#fff5f5':'var(--color-surface)'}};font-size:13px;line-height:1.45;color:{{authMessage.type==='error'?'#c62828':'var(--color-text)'}}">{{authMessage.text}}</div>
           <sc-if value="{{canResendConfirmation}}" hint-placeholder-val="{{false}}">
             <button type="button" class="btn btn-ghost" onClick="{{resendConfirmation}}" disabled="{{authBusy}}" style="padding:0;font-size:13px;color:var(--color-accent-700);align-self:flex-start">Resend confirmation email</button>
           </sc-if>
