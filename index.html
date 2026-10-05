@@ -737,7 +737,13 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
         </sc-if>
 
         <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">
-          {{authBusy?'Please wait…':authSubmitLabel}}
+          <sc-if value="{{authBusy}}" hint-placeholder-val="{{false}}">Please wait…</sc-if>
+          <sc-if value="{{authBusy}}" hint-placeholder-val="{{true}}">
+            <sc-if value="{{authLogin}}" hint-placeholder-val="{{false}}">Sign In</sc-if>
+            <sc-if value="{{authSignup}}" hint-placeholder-val="{{false}}">Sign Up</sc-if>
+            <sc-if value="{{authResetRequest}}" hint-placeholder-val="{{false}}">Send Reset Link</sc-if>
+            <sc-if value="{{authResetUpdate}}" hint-placeholder-val="{{false}}">Update Password</sc-if>
+          </sc-if>
           <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
         </button>
       </form>
