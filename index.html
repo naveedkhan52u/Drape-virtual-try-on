@@ -57,8 +57,8 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
           <div class="blueprint elev-md" style="position:absolute;right:0;top:calc(100% + 10px);width:230px;background:var(--color-bg);padding:6px;display:flex;flex-direction:column;z-index:50">
             <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
             <div style="padding:10px 10px 12px;border-bottom:1px solid var(--color-divider);margin-bottom:4px">
-              <div style="font-weight:700;font-size:14px">Maya Reyes</div>
-              <div class="text-muted" style="font-size:12px">maya.reyes@gmail.com</div>
+              <div style="font-weight:700;font-size:14px">{{profileName}}</div>
+              <div class="text-muted" style="font-size:12px">{{userEmail}}</div>
             </div>
             <sc-for list="{{acctItems}}" as="m" hint-placeholder-count="5">
               <button class="btn btn-ghost" onClick="{{m.onClick}}" style="justify-content:flex-start;color:var(--color-text);font-family:var(--font-body);font-weight:400;padding:8px 10px">{{m.label}}</button>
@@ -598,10 +598,10 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
         <span class="card-kicker">Profile</span>
         <div style="display:flex;gap:14px;align-items:center">
-          <span style="width:52px;height:52px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-900);display:grid;place-items:center;font-weight:700">MR</span>
-          <div><div class="card-title" style="font-size:22px">Maya Reyes</div><div class="text-muted" style="font-size:13px">Member since March 2026</div></div>
+          <span style="width:52px;height:52px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-900);display:grid;place-items:center;font-weight:700">{{profileInitials}}</span>
+          <div><div class="card-title" style="font-size:22px">{{profileName}}</div><div class="text-muted" style="font-size:13px">Member since {{memberSince}}</div></div>
         </div>
-        <div class="field"><label for="em">Email</label><input id="em" class="input" value="maya.reyes@gmail.com" readonly></div>
+        <div class="field"><label for="em">Email</label><input id="em" class="input" value="{{userEmail}}" readonly></div>
         <button class="btn btn-secondary" onClick="{{toastSoon}}" style="align-self:flex-start">Edit profile</button>
       </div>
       <div class="card blueprint" style="padding:22px;gap:14px">
@@ -619,8 +619,8 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
       <div class="card blueprint" style="padding:22px;gap:14px">
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
         <span class="card-kicker">Subscription</span>
-        <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="card-title" style="font-size:24px">Creator</div><span class="tag tag-accent">Active</span></div>
-        <div class="text-muted" style="font-size:14px">75 credits per month · $9.99<br>Renews October 14, 2026</div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="card-title" style="font-size:24px">{{planName}}</div><span class="tag tag-accent">Active</span></div>
+        <div class="text-muted" style="font-size:14px">{{planCredits}} credits included<br>{{planStatusText}}</div>
         <div style="display:flex;gap:10px;margin-top:auto;flex-wrap:wrap">
           <button class="btn btn-secondary" onClick="{{goPricing}}">Change plan</button>
           <button class="btn btn-ghost" onClick="{{confirmCancel}}" style="font-family:var(--font-body);font-weight:500">Cancel subscription</button>
@@ -902,9 +902,11 @@ class Component extends DCLogic {
     if(!window.supabase?.createClient)return;
     this.supabase=window.supabase.createClient('https://pbthnewtixzwwoivgavt.supabase.co','sb_publishable_s899D-cKO_R00WW0V8akPA_yB3K4cd1',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     const {data}=await this.supabase.auth.getSession();
-    if(data?.session)this.applyAuthSession(data.session);
+    if(data?.session){this.applyAuthSession(data.session);await this.loadUserData(data.session.user.id);}
     const {data:listener}=this.supabase.auth.onAuthStateChange((event,session)=>{
       this.applyAuthSession(session);
+      if(session?.user?.id) this.loadUserData(session.user.id);
+      else this.setState({credits:null,results:null,used:0});
       if(event==='PASSWORD_RECOVERY'){
         this.setState({screen:'auth',authMode:'resetUpdate',authPassword:'',authConfirm:'',authMessage:null});
       }
@@ -914,6 +916,29 @@ class Component extends DCLogic {
   applyAuthSession(session){
     const user=session?.user||null;
     this.setState({session:session||null,user,authEmail:user?.email||this.state.authEmail});
+  }
+  async loadUserData(userId){
+    if(!this.supabase||!userId)return;
+    const [{data:profile,error:profileError},{data:tx,error:txError}]=await Promise.all([
+      this.supabase.from('profiles').select('id,full_name,avatar_url,plan,credits,auto_delete_photos,allow_training,created_at').eq('id',userId).maybeSingle(),
+      this.supabase.from('credit_transactions').select('amount,type,created_at,description').eq('user_id',userId).order('created_at',{ascending:false}).limit(200)
+    ]);
+    if(profileError){
+      this.setState({authMessage:{type:'error',text:'We could not load your account data. Please refresh and try again.'}});
+      return;
+    }
+    const transactions=txError?[]:(tx||[]);
+    const monthStart=new Date();monthStart.setDate(1);monthStart.setHours(0,0,0,0);
+    const usedThisMonth=Math.abs(transactions.filter(x=>x.type==='try_on'&&new Date(x.created_at)>=monthStart).reduce((sum,x)=>sum+Math.min(0,Number(x.amount)||0),0));
+    const priv={autoDeletePhotos:!!profile?.auto_delete_photos,allowTraining:!!profile?.allow_training};
+    this.setState({
+      credits:Number(profile?.credits??3),
+      used:usedThisMonth,
+      results:[],
+      priv:{autoDelete:priv.autoDeletePhotos,training:priv.allowTraining},
+      profile:profile||null,
+      activity:transactions
+    });
   }
   authRedirectUrl(){
     return window.location.origin+window.location.pathname;
@@ -970,8 +995,8 @@ class Component extends DCLogic {
     this.toast('You have been signed out.');
   }
   componentWillUnmount(){this.ro&&this.ro.disconnect();document.removeEventListener('click',this.onDoc);clearTimeout(this.t);}
-  get credits(){return this.state.credits??(this.props.startingCredits??12);}
-  get results(){return this.state.results??(this.props.emptyHistory?[]:SEED);}
+  get credits(){return this.state.credits??0;}
+  get results(){return this.state.results??[];}
   go(screen,extra){
     const protectedScreens=['workspace','processing','failed','result','results','credits','account'];
     if(protectedScreens.includes(screen)&&!this.state.session){
@@ -1022,7 +1047,14 @@ class Component extends DCLogic {
   setSaved(id){const r=this.results.find(x=>x.id===id);const nv=!r.saved;this.setState({results:this.results.map(x=>x.id===id?{...x,saved:nv}:x)});this.toast(nv?'Saved to your results':'Removed from saved');}
   askDelete(r){this.setState({confirm:{title:'Delete this result?',body:`“${r.name}” will be permanently removed. This can’t be undone, and credits aren’t refunded for deleted results.`,label:'Delete',run:()=>{this.setState({results:this.results.filter(x=>x.id!==r.id)});this.toast('Result deleted');}}});}
   renderVals(){
-    const s=this.state, w=s.w, isMobile=w<860, credits=this.credits, results=this.results;
+    const s=this.state, w=s.w, isMobile=w<860, credits=this.credits, results=this.results, profile=s.profile||{}, user=s.user||{};
+    const profileName=profile.full_name||user.user_metadata?.name||'Drape User';
+    const userEmail=user.email||'';
+    const profileInitials=profileName.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join('')||'DU';
+    const memberSince=profile.created_at?new Date(profile.created_at).toLocaleDateString(undefined,{month:'long',year:'numeric'}):'Recently';
+    const planName=(profile.plan||'free').charAt(0).toUpperCase()+(profile.plan||'free').slice(1);
+    const planCredits=profile.plan==='free'?3:({starter:25,creator:75,pro:200,business:500}[profile.plan]||3);
+    const planStatusText=profile.plan==='free'?'Free plan':planName+' plan';
     const pv=e=>{e&&e.preventDefault&&e.preventDefault();};
     const nav=(scr)=>e=>{pv(e);this.go(scr);};
     const goHow=e=>{pv(e);this.go('landing');setTimeout(()=>{const el=this.howRef.current;if(el)window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-70,behavior:'smooth'});},60);};
@@ -1069,6 +1101,7 @@ class Component extends DCLogic {
     return {
       rootRef:this.rootRef,howRef:this.howRef,personInputRef:this.pIn,garmentInputRef:this.gIn,
       frameMax:this.props.frame==='mobile'?'390px':'none',
+      profileName,userEmail,profileInitials,memberSince,planName,planCredits,planStatusText,
       isMobile,isDesktop:!isMobile,mobileMenuOpen:isMobile&&s.menuOpen,acctOpen:s.acctOpen,is,navItems,loggedIn,loggedOut,credits,used:s.used,creditsLabel,
       showFooter:!['processing'].includes(s.screen),
       goLanding:nav('landing'),goWorkspace:nav('workspace'),goCredits:nav('credits'),goPricing:nav('pricing'),goResults:nav('results'),goAccount:nav('account'),goStates:nav('states'),goHow,
@@ -1142,7 +1175,7 @@ class Component extends DCLogic {
       // credits / pricing
       plans,paidPlans:plans.filter(x=>x.price>0).map(x=>({...x,selected:x.key===s.pack,rowBg:x.key===s.pack?'var(--color-accent-100)':'transparent',onSelect:()=>this.setState({pack:x.key})})),
       openBuy:()=>this.setState({modal:'buy',pack:s.pack==='free'?'creator':s.pack}),
-      activity:[{date:'Sep 29, 2026',what:'Try-on · Linen overshirt — sand',delta:'−1'},{date:'Sep 27, 2026',what:'Try-on · Ribbed knit cardigan',delta:'−1'},{date:'Sep 25, 2026',what:'Try-on failed · not charged',delta:'0'},{date:'Sep 24, 2026',what:'Try-on · Wool overcoat — charcoal',delta:'−1'},{date:'Sep 14, 2026',what:'Creator plan renewal',delta:'+75'}],
+      activity:(s.activity||[]).map(x=>({date:new Date(x.created_at).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}),what:(x.description||x.type||'Credit activity'),delta:(Number(x.amount)>0?'+':'')+Number(x.amount)})),
       payLabel:s.paying?'Processing…':'Pay '+money(sel.price),paying:s.paying,
       pay:()=>{this.setState({paying:true});setTimeout(()=>{this.setState({paying:false,modal:null,credits:this.credits+sel.credits});this.toast(sel.credits+' credits added to your balance');},1100);},
       modalBuy:s.modal==='buy',modalNoCredits:s.modal==='nocredits',modalShare:s.modal==='share',
