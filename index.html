@@ -730,7 +730,10 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
         </sc-if>
 
         <sc-if value="{{authMessage}}" hint-placeholder-val="{{false}}">
-          <div role="alert" style="padding:12px 14px;border:1px solid {{authMessage.type==='success'?'var(--color-accent-300)':'var(--color-accent-300)'}};background:{{authMessage.type==='success'?'var(--color-accent-100)':'var(--color-surface)'}};font-size:13px;line-height:1.45;color:var(--color-text)">{{authMessage.text}}</div>
+          <div role="alert" style="padding:12px 14px;border:1px solid var(--color-accent-300);background:{{authMessage.type==='success'?'var(--color-accent-100)':'var(--color-surface)'}};font-size:13px;line-height:1.45;color:var(--color-text)">{{authMessage.text}}</div>
+          <sc-if value="{{canResendConfirmation}}" hint-placeholder-val="{{false}}">
+            <button type="button" class="btn btn-ghost" onClick="{{resendConfirmation}}" disabled="{{authBusy}}" style="padding:0;font-size:13px;color:var(--color-accent-700);align-self:flex-start">Resend confirmation email</button>
+          </sc-if>
         </sc-if>
 
         <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">
@@ -901,6 +904,14 @@ class Component extends DCLogic {
   async initSupabaseAuth(){
     if(!window.supabase?.createClient)return;
     this.supabase=window.supabase.createClient('https://pbthnewtixzwwoivgavt.supabase.co','sb_publishable_s899D-cKO_R00WW0V8akPA_yB3K4cd1',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    const hash=window.location.hash||'';
+    if(hash.includes('error=access_denied')||hash.includes('error_code=otp_expired')){
+      const params=new URLSearchParams(hash.replace(/^#/,''));
+      const code=params.get('error_code');
+      const description=params.get('error_description');
+      history.replaceState(null,'',window.location.pathname+window.location.search);
+      this.setState({screen:'auth',authMode:'login',authMessage:{type:'error',text:code==='otp_expired'?'That confirmation link has expired or was already used. Request a new confirmation email and use the newest link.':(description||'Email confirmation failed. Please request a new confirmation email.').replace(/\+/g,' ')}});
+    }
     const {data}=await this.supabase.auth.getSession();
     if(data?.session){this.applyAuthSession(data.session);await this.loadUserData(data.session.user.id);}
     const {data:listener}=this.supabase.auth.onAuthStateChange((event,session)=>{
@@ -984,7 +995,21 @@ class Component extends DCLogic {
     if(m.includes('password should be at least'))return 'Password must be at least 6 characters.';
     if(m.includes('rate limit'))return 'Too many attempts. Please wait a moment and try again.';
     if(m.includes('invalid email'))return 'Please enter a valid email address.';
+    if(m.includes('otp_expired')||m.includes('expired')||m.includes('invalid or has expired'))return 'This email link has expired or was already used. Please request a new confirmation email.';
     return err?.message||'Something went wrong. Please try again.';
+  }
+  async resendConfirmation(){
+    if(!this.supabase)return this.setState({authMessage:{type:'error',text:'Supabase Auth is not available. Please refresh the page.'}});
+    const email=this.state.authEmail.trim();
+    if(!email)return this.setState({authMessage:{type:'error',text:'Enter your email address first.'}});
+    this.setState({authBusy:true,authMessage:null});
+    try{
+      const {error}=await this.supabase.auth.resend({type:'signup',email,options:{emailRedirectTo:this.authRedirectUrl()}});
+      if(error)throw error;
+      this.setState({authBusy:false,authMessage:{type:'success',text:'A new confirmation email has been sent. Use the newest email link.'}});
+    }catch(err){
+      this.setState({authBusy:false,authMessage:{type:'error',text:this.authError(err)}});
+    }
   }
   async signOut(){
     if(!this.supabase)return;
@@ -1110,7 +1135,7 @@ class Component extends DCLogic {
       goSaved:()=>this.go('results',{filter:'saved'}),
       toggleMenu:()=>this.setState({menuOpen:!s.menuOpen}),toggleAcct:()=>this.setState({acctOpen:!s.acctOpen}),
       acctItems:[['Account','account'],['My Results','results'],['Credits & billing','credits'],['UI states','states'],['Sign out','landing']].map(([label,k])=>({label,onClick:()=>{if(label==='Sign out')this.signOut();else this.go(k);}})),
-      authLogin:s.authMode==='login',authSignup:s.authMode==='signup',authResetRequest:s.authMode==='resetRequest',authResetUpdate:s.authMode==='resetUpdate',
+      authLogin:s.authMode==='login',authSignup:s.authMode==='signup',authResetRequest:s.authMode==='resetRequest',authResetUpdate:s.authMode==='resetUpdate',canResendConfirmation:!!s.authMessage&&s.authMode==='signup'&&!s.session,
       authModeLabel:s.authMode==='login'?'Welcome back':s.authMode==='signup'?'Create your account':s.authMode==='resetRequest'?'Reset your password':'Choose a new password',
       authTitle:s.authMode==='login'?'Sign In':s.authMode==='signup'?'Sign Up':s.authMode==='resetRequest'?'Reset Password':'New Password',
       authSubtitle:s.authMode==='login'?'Sign in to continue to your Drape workspace.':s.authMode==='signup'?'Create your Drape account and get started with your free credits.':s.authMode==='resetRequest'?'Enter your email and we’ll send you a secure reset link.':'Enter a new password for your Drape account.',
