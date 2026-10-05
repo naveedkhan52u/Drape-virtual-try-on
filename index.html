@@ -37,14 +37,18 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
         </sc-for>
       </div>
     </sc-if>
-    <button class="btn btn-secondary" onClick="{{goCredits}}" title="Credit balance" style="gap:8px;font-family:var(--font-body);font-weight:500">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"></circle><path d="M18.09 10.37A6 6 0 1 1 10.34 18"></path><path d="M7 6h1v4"></path><path d="m16.71 13.88.7.71-2.82 2.82"></path></svg>
-      <span>{{credits}}</span>
-    </button>
+    <sc-if value="{{loggedIn}}" hint-placeholder-val="{{false}}">
+      <button class="btn btn-secondary" onClick="{{goCredits}}" title="Credit balance" style="gap:8px;font-family:var(--font-body);font-weight:500">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"></circle><path d="M18.09 10.37A6 6 0 1 1 10.34 18"></path><path d="M7 6h1v4"></path><path d="m16.71 13.88.7.71-2.82 2.82"></path></svg>
+        <span>{{credits}}</span>
+      </button>
+    </sc-if>
     <sc-if value="{{isDesktop}}" hint-placeholder-val="{{true}}">
-      <button class="btn btn-primary blueprint" onClick="{{goWorkspace}}" style="padding:8px 18px;font-size:15px">Try On<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
-      <button class="btn btn-secondary" onClick="{{goAuth}}" style="padding:8px 16px;font-size:15px;background:#5980a6;border-color:#5980a6;color:#fff">Sign In</button>
-      <div style="position:relative">
+      <sc-if value="{{loggedOut}}" hint-placeholder-val="{{false}}">
+        <button class="btn btn-secondary" onClick="{{goAuth}}" style="padding:8px 16px;font-size:15px;background:#5980a6;border-color:#5980a6;color:#fff">Sign In</button>
+      </sc-if>
+      <sc-if value="{{loggedIn}}" hint-placeholder-val="{{false}}">
+        <div style="position:relative">
         <button class="btn btn-ghost" onClick="{{toggleAcct}}" aria-label="Account menu" style="gap:6px;padding:2px;color:var(--color-text)">
           <span style="width:32px;height:32px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-900);display:grid;place-items:center;font-family:var(--font-body);font-size:12px;font-weight:700">MR</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
@@ -71,11 +75,15 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
   </nav>
   <sc-if value="{{mobileMenuOpen}}" hint-placeholder-val="{{false}}">
     <div style="border-top:1px solid var(--color-divider);padding:8px 16px 18px;display:flex;flex-direction:column">
-      <sc-for list="{{navItems}}" as="it" hint-placeholder-count="5">
+      <sc-for list="{{navItems}}" as="it" hint-placeholder-count="6">
         <a href="#" onClick="{{it.onClick}}" aria-current="{{it.current}}" style="padding:13px 0;border-bottom:1px solid var(--color-divider);font-size:16px;text-decoration:none;color:var(--color-text)">{{it.label}}</a>
       </sc-for>
-      <a href="#" onClick="{{goAuth}}" style="padding:13px 0;font-size:16px;text-decoration:none;color:var(--color-text)">Sign In</a>
-      <button class="btn btn-primary blueprint" onClick="{{goWorkspace}}" style="margin-top:10px;padding:13px;font-size:17px">Try On<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+      <sc-if value="{{loggedOut}}" hint-placeholder-val="{{false}}">
+        <a href="#" onClick="{{goAuth}}" style="padding:13px 0;font-size:16px;text-decoration:none;color:var(--color-text)">Sign In</a>
+      </sc-if>
+      <sc-if value="{{loggedIn}}" hint-placeholder-val="{{false}}">
+        <button class="btn btn-secondary" onClick="{{signOut}}" style="margin-top:10px;padding:13px;font-size:16px">Sign Out</button>
+      </sc-if>
     </div>
   </sc-if>
 </header>
@@ -964,7 +972,16 @@ class Component extends DCLogic {
   componentWillUnmount(){this.ro&&this.ro.disconnect();document.removeEventListener('click',this.onDoc);clearTimeout(this.t);}
   get credits(){return this.state.credits??(this.props.startingCredits??12);}
   get results(){return this.state.results??(this.props.emptyHistory?[]:SEED);}
-  go(screen,extra){this.setState({screen,menuOpen:false,acctOpen:false,...(extra||{})});try{window.scrollTo(0,0);}catch(e){}}
+  go(screen,extra){
+    const protectedScreens=['workspace','processing','failed','result','results','credits','account'];
+    if(protectedScreens.includes(screen)&&!this.state.session){
+      this.setState({screen:'auth',authMode:'login',authPassword:'',authConfirm:'',authName:'',authMessage:{type:'error',text:'Please sign in to access this page.'},menuOpen:false,acctOpen:false});
+      try{window.scrollTo(0,0);}catch(e){}
+      return;
+    }
+    this.setState({screen,menuOpen:false,acctOpen:false,...(extra||{})});
+    try{window.scrollTo(0,0);}catch(e){}
+  }
   toast(msg){const id=Date.now()+Math.random();this.setState(s=>({toasts:[...s.toasts,{id,msg}]}));setTimeout(()=>this.setState(s=>({toasts:s.toasts.filter(t=>t.id!==id)})),3200);}
   readFile(file,which){
     const ek=which==='p'?'pErr':'gErr', k=which==='p'?'person':'garment';
@@ -1011,13 +1028,18 @@ class Component extends DCLogic {
     const goHow=e=>{pv(e);this.go('landing');setTimeout(()=>{const el=this.howRef.current;if(el)window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-70,behavior:'smooth'});},60);};
     const screens=['landing','workspace','processing','failed','result','results','credits','pricing','account','auth','states'];
     const is={};screens.forEach(k=>is[k]=s.screen===k);
-    const navItems=[['Try On','workspace'],['My Results','results'],['Credits','credits'],['Pricing','pricing'],['How It Works','how']].map(([label,k])=>({label,current:(k===s.screen||(k==='workspace'&&['processing','result','failed'].includes(s.screen)))?'page':undefined,onClick:k==='how'?goHow:nav(k)}));
+    const loggedIn=!!s.session;
+    const loggedOut=!loggedIn;
+    const navSpec=loggedIn
+      ? [['Home','landing'],['Try On','workspace'],['My Results','results'],['Credits','credits'],['Pricing','pricing'],['Account','account']]
+      : [['Home','landing'],['Pricing','pricing'],['How It Works','how']];
+    const navItems=navSpec.map(([label,k])=>({label,current:(k===s.screen||(k==='workspace'&&['processing','result','failed'].includes(s.screen)))?'page':undefined,onClick:k==='how'?goHow:nav(k)}));
     const p=s.person,g=s.garment;
     const featured=this.props.featuredPlan??'creator';
     const plans=PLANS.map(pl=>({...pl,priceLabel:money(pl.price),perTry:pl.price===0?'free':'$'+(pl.price/pl.credits).toFixed(2)+' per try',featured:pl.key===featured,badge:featured==='pro'?'Best value':'Most popular',isFree:pl.price===0,
       btnClass:pl.key===featured?'btn btn-primary':'btn btn-secondary',creditsBtn:pl.price===0?'Included on sign-up':'Buy Credits',planBtn:pl.price===0?'Start free':'Choose '+pl.name,
       features:[pl.credits+' credits',pl.credits+' virtual try-ons',pl.hist,pl.dl,pl.prio?'Priority processing':'Standard processing'],
-      onBuy:()=>this.setState({modal:'buy',pack:pl.key}),onPlan:()=>pl.price===0?this.go('workspace'):this.setState({modal:'buy',pack:pl.key})}));
+      onBuy:()=>loggedOut?this.go('auth',{authMode:'signup',authPassword:'',authConfirm:'',authName:'',authMessage:null}):this.setState({modal:'buy',pack:pl.key}),onPlan:()=>loggedOut?this.go('auth',{authMode:'signup',authPassword:'',authConfirm:'',authName:'',authMessage:null}):(pl.price===0?this.go('workspace'):this.setState({modal:'buy',pack:pl.key}))}));
     const sel=PLANS.find(x=>x.key===s.pack)||PLANS[2];
     let visible=results; if(s.filter==='recent')visible=results.filter(r=>r.days<=7); if(s.filter==='saved')visible=results.filter(r=>r.saved);
     const cur=results.find(r=>r.id===s.currentId);
@@ -1047,7 +1069,7 @@ class Component extends DCLogic {
     return {
       rootRef:this.rootRef,howRef:this.howRef,personInputRef:this.pIn,garmentInputRef:this.gIn,
       frameMax:this.props.frame==='mobile'?'390px':'none',
-      isMobile,isDesktop:!isMobile,mobileMenuOpen:isMobile&&s.menuOpen,acctOpen:s.acctOpen,is,navItems,credits,used:s.used,creditsLabel,
+      isMobile,isDesktop:!isMobile,mobileMenuOpen:isMobile&&s.menuOpen,acctOpen:s.acctOpen,is,navItems,loggedIn,loggedOut,credits,used:s.used,creditsLabel,
       showFooter:!['processing'].includes(s.screen),
       goLanding:nav('landing'),goWorkspace:nav('workspace'),goCredits:nav('credits'),goPricing:nav('pricing'),goResults:nav('results'),goAccount:nav('account'),goStates:nav('states'),goHow,
       goAuth:()=>this.go('auth',{authMode:'login',authPassword:'',authConfirm:'',authName:'',authMessage:null}),
