@@ -735,11 +735,11 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
             <button type="button" class="btn btn-ghost" onClick="{{resendConfirmation}}" disabled="{{authBusy}}" style="padding:0;font-size:13px;color:var(--color-accent-700);align-self:flex-start">Resend confirmation email</button>
           </sc-if>
         </sc-if>
-
         <sc-if value="{{authLogin}}" hint-placeholder-val="{{false}}">
-          <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">Send Reset Link<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></sc-if>
+          <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">Sign In<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+        </sc-if>
         <sc-if value="{{authSignup}}" hint-placeholder-val="{{false}}">
-          <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">{{authBusy?'Please wait…':'Sign Up'}}<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+          <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">Sign Up<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
         </sc-if>
         <sc-if value="{{authResetRequest}}" hint-placeholder-val="{{false}}">
           <button type="submit" class="btn btn-primary blueprint" disabled="{{authBusy}}" style="width:100%;padding:13px;font-size:16px;opacity:{{authBusy?'0.65':'1'}}">{{authBusy?'Please wait…':'Send Reset Link'}}<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
