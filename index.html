@@ -42,6 +42,7 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
     </button>
     <sc-if value="{{isDesktop}}" hint-placeholder-val="{{true}}">
       <button class="btn btn-primary blueprint" onClick="{{goWorkspace}}" style="padding:8px 18px;font-size:15px">Try On<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+      <button class="btn btn-secondary" onClick="{{goAuth}}" style="padding:8px 16px;font-size:15px">Sign In</button>
       <div style="position:relative">
         <button class="btn btn-ghost" onClick="{{toggleAcct}}" aria-label="Account menu" style="gap:6px;padding:2px;color:var(--color-text)">
           <span style="width:32px;height:32px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-900);display:grid;place-items:center;font-family:var(--font-body);font-size:12px;font-weight:700">MR</span>
@@ -72,7 +73,7 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
       <sc-for list="{{navItems}}" as="it" hint-placeholder-count="5">
         <a href="#" onClick="{{it.onClick}}" aria-current="{{it.current}}" style="padding:13px 0;border-bottom:1px solid var(--color-divider);font-size:16px;text-decoration:none;color:var(--color-text)">{{it.label}}</a>
       </sc-for>
-      <a href="#" onClick="{{goAccount}}" style="padding:13px 0;font-size:16px;text-decoration:none;color:var(--color-text)">Account</a>
+      <a href="#" onClick="{{goAuth}}" style="padding:13px 0;font-size:16px;text-decoration:none;color:var(--color-text)">Sign In</a>
       <button class="btn btn-primary blueprint" onClick="{{goWorkspace}}" style="margin-top:10px;padding:13px;font-size:17px">Try On<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
     </div>
   </sc-if>
@@ -656,6 +657,81 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
   </section>
 </sc-if>
 
+<!-- AUTH -->
+<sc-if value="{{is.auth}}" hint-placeholder-val="{{false}}">
+  <section style="min-height:calc(100vh - 190px);display:flex;justify-content:center;align-items:flex-start;padding:clamp(42px,7cqw,82px) 0 80px">
+    <div class="blueprint" style="width:min(460px,100%);background:var(--color-bg);padding:clamp(24px,4cqw,38px);position:relative">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <div style="text-align:center;margin-bottom:28px">
+        <div class="tag tag-accent" style="display:inline-flex;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px">{{authModeLabel}}</div>
+        <h1 style="font-size:clamp(32px,5cqw,48px);line-height:1;margin:0 0 10px;text-transform:uppercase">{{authTitle}}</h1>
+        <p class="text-muted" style="font-size:14px;margin:0;line-height:1.5">{{authSubtitle}}</p>
+      </div>
+
+      <form onSubmit="{{submitAuth}}" style="display:flex;flex-direction:column;gap:17px">
+        <div class="field">
+          <label for="auth-email">Email address</label>
+          <input id="auth-email" class="input" type="email" autocomplete="email" placeholder="you@example.com" value="{{authEmail}}" onInput="{{onAuthEmail}}" required>
+        </div>
+
+        <sc-if value="{{authSignup}}" hint-placeholder-val="{{false}}">
+          <div class="field">
+            <label for="auth-name">Full name</label>
+            <input id="auth-name" class="input" type="text" autocomplete="name" placeholder="Your name" value="{{authName}}" onInput="{{onAuthName}}" required>
+          </div>
+        </sc-if>
+
+        <div class="field">
+          <label for="auth-password">Password</label>
+          <div style="position:relative">
+            <input id="auth-password" class="input" type="{{passwordInputType}}" autocomplete="{{passwordAutocomplete}}" placeholder="Enter your password" value="{{authPassword}}" onInput="{{onAuthPassword}}" required style="padding-right:46px">
+            <button type="button" class="btn btn-ghost btn-icon" onClick="{{togglePassword}}" aria-label="{{passwordAria}}" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);color:var(--color-text)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="{{eyePath1}}"></path><path d="{{eyePath2}}"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <sc-if value="{{authSignup}}" hint-placeholder-val="{{false}}">
+          <div class="field">
+            <label for="auth-confirm">Confirm password</label>
+            <div style="position:relative">
+              <input id="auth-confirm" class="input" type="{{confirmInputType}}" autocomplete="new-password" placeholder="Confirm your password" value="{{authConfirm}}" onInput="{{onAuthConfirm}}" required style="padding-right:46px">
+              <button type="button" class="btn btn-ghost btn-icon" onClick="{{toggleConfirmPassword}}" aria-label="{{confirmPasswordAria}}" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);color:var(--color-text)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="{{confirmEyePath1}}"></path><path d="{{confirmEyePath2}}"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{authLogin}}">
+          <div style="display:flex;justify-content:flex-end;margin-top:-7px">
+            <button type="button" class="btn btn-ghost" onClick="{{forgotPassword}}" style="padding:0;font-size:13px;color:var(--color-accent-700)">Forgot password?</button>
+          </div>
+        </sc-if>
+
+        <button type="submit" class="btn btn-primary blueprint" style="width:100%;padding:13px;font-size:16px">
+          {{authSubmitLabel}}
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        </button>
+      </form>
+
+      <div style="display:flex;align-items:center;gap:12px;margin:24px 0 18px;color:var(--color-muted)">
+        <div style="height:1px;background:var(--color-divider);flex:1"></div><span class="text-muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.08em">or</span><div style="height:1px;background:var(--color-divider);flex:1"></div>
+      </div>
+
+      <button class="btn btn-secondary" onClick="{{switchAuthMode}}" style="width:100%;padding:12px;font-size:15px">{{authSwitchLabel}}</button>
+
+      <p class="text-muted" style="font-size:12px;line-height:1.5;text-align:center;margin:18px 0 0">
+        By continuing, you agree to Drape's terms and privacy policy.
+      </p>
+    </div>
+  </section>
+</sc-if>
+
 <!-- UI STATES -->
 <sc-if value="{{is.states}}" hint-placeholder-val="{{false}}">
   <section style="padding:clamp(28px,4cqw,48px) 0 72px">
@@ -684,7 +760,7 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
     <div style="max-width:1240px;margin:0 auto;padding:28px clamp(16px,3cqw,32px);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px">
       <span style="font-family:var(--font-heading);font-weight:600;letter-spacing:.06em;font-size:16px">DRAPE</span>
       <div style="display:flex;gap:20px;flex-wrap:wrap">
-        <a href="#" onClick="{{goPricing}}">Pricing</a><a href="#" onClick="{{goHow}}">How It Works</a><a href="#" onClick="{{toastSoon}}">Privacy</a><a href="#" onClick="{{toastSoon}}">Terms</a><a href="#" onClick="{{goStates}}">UI states</a>
+        <a href="#" onClick="{{goPricing}}">Pricing</a><a href="#" onClick="{{goHow}}">How It Works</a><a href="#" onClick="{{goAuth}}">Sign In</a><a href="#" onClick="{{toastSoon}}">Privacy</a><a href="#" onClick="{{toastSoon}}">Terms</a><a href="#" onClick="{{goStates}}">UI states</a>
       </div>
       <span class="text-muted">© 2026 Drape</span>
     </div>
@@ -794,7 +870,7 @@ const FAIL={
 };
 const money=n=>n===0?'$0':'$'+n.toFixed(2);
 class Component extends DCLogic {
-  state={screen:'landing',credits:null,used:8,person:null,garment:null,gTab:'upload',urlText:'',urlLoading:false,pErr:null,gErr:null,dragP:false,dragG:false,results:null,filter:'all',view:'compare',split:50,menuOpen:false,acctOpen:false,modal:null,pack:'creator',paying:false,toasts:[],w:1200,failKind:null,attempt:0,confirm:null,currentId:null,priv:{autoDelete:true,training:false}};
+  state={screen:'landing',authMode:'login',authEmail:'',authName:'',authPassword:'',authConfirm:'',showPassword:false,showConfirmPassword:false,credits:null,used:8,person:null,garment:null,gTab:'upload',urlText:'',urlLoading:false,pErr:null,gErr:null,dragP:false,dragG:false,results:null,filter:'all',view:'compare',split:50,menuOpen:false,acctOpen:false,modal:null,pack:'creator',paying:false,toasts:[],w:1200,failKind:null,attempt:0,confirm:null,currentId:null,priv:{autoDelete:true,training:false}};
   rootRef=React.createRef(); howRef=React.createRef(); pIn=React.createRef(); gIn=React.createRef();
   componentDidMount(){
     const el=this.rootRef.current; if(el&&window.ResizeObserver){this.ro=new ResizeObserver(e=>{const w=e[0].contentRect.width; if(Math.abs(w-this.state.w)>1)this.setState({w});}); this.ro.observe(el);}
@@ -849,7 +925,7 @@ class Component extends DCLogic {
     const pv=e=>{e&&e.preventDefault&&e.preventDefault();};
     const nav=(scr)=>e=>{pv(e);this.go(scr);};
     const goHow=e=>{pv(e);this.go('landing');setTimeout(()=>{const el=this.howRef.current;if(el)window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-70,behavior:'smooth'});},60);};
-    const screens=['landing','workspace','processing','failed','result','results','credits','pricing','account','states'];
+    const screens=['landing','workspace','processing','failed','result','results','credits','pricing','account','auth','states'];
     const is={};screens.forEach(k=>is[k]=s.screen===k);
     const navItems=[['Try On','workspace'],['My Results','results'],['Credits','credits'],['Pricing','pricing'],['How It Works','how']].map(([label,k])=>({label,current:(k===s.screen||(k==='workspace'&&['processing','result','failed'].includes(s.screen)))?'page':undefined,onClick:k==='how'?goHow:nav(k)}));
     const p=s.person,g=s.garment;
@@ -890,9 +966,32 @@ class Component extends DCLogic {
       isMobile,isDesktop:!isMobile,mobileMenuOpen:isMobile&&s.menuOpen,acctOpen:s.acctOpen,is,navItems,credits,used:s.used,creditsLabel,
       showFooter:!['processing'].includes(s.screen),
       goLanding:nav('landing'),goWorkspace:nav('workspace'),goCredits:nav('credits'),goPricing:nav('pricing'),goResults:nav('results'),goAccount:nav('account'),goStates:nav('states'),goHow,
+      goAuth:()=>this.go('auth',{authMode:'login',authPassword:'',authConfirm:'',authName:''}),
       goSaved:()=>this.go('results',{filter:'saved'}),
       toggleMenu:()=>this.setState({menuOpen:!s.menuOpen}),toggleAcct:()=>this.setState({acctOpen:!s.acctOpen}),
       acctItems:[['Account','account'],['My Results','results'],['Credits & billing','credits'],['UI states','states'],['Sign out','landing']].map(([label,k])=>({label,onClick:()=>{this.go(k);if(label==='Sign out')this.toast('Signed out (prototype)');}})),
+      authLogin:s.authMode==='login',authSignup:s.authMode==='signup',
+      authModeLabel:s.authMode==='login'?'Welcome back':'Create your account',
+      authTitle:s.authMode==='login'?'Sign In':'Sign Up',
+      authSubtitle:s.authMode==='login'?'Sign in to continue to your Drape workspace.':'Create your Drape account and get started with your free credits.',
+      authSubmitLabel:s.authMode==='login'?'Sign In':'Create Account',
+      authSwitchLabel:s.authMode==='login'?'Create a new account':'Already have an account? Sign In',
+      authEmail:s.authEmail,authName:s.authName||'',authPassword:s.authPassword,authConfirm:s.authConfirm,
+      onAuthEmail:e=>this.setState({authEmail:e.target.value}),onAuthName:e=>this.setState({authName:e.target.value}),
+      onAuthPassword:e=>this.setState({authPassword:e.target.value}),onAuthConfirm:e=>this.setState({authConfirm:e.target.value}),
+      passwordInputType:s.showPassword?'text':'password',confirmInputType:s.showConfirmPassword?'text':'password',
+      passwordAutocomplete:s.authMode==='login'?'current-password':'new-password',
+      passwordAria:s.showPassword?'Hide password':'Show password',
+      confirmPasswordAria:s.showConfirmPassword?'Hide password':'Show password',
+      eyePath1:s.showPassword?'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12':'M2 2l20 20',
+      eyePath2:s.showPassword?'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6':'M9.5 9.5a3 3 0 0 1 4.24 4.24',
+      confirmEyePath1:s.showConfirmPassword?'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12':'M2 2l20 20',
+      confirmEyePath2:s.showConfirmPassword?'M12 9a3 3 0 1 0 0 6 3 3 0 0 0-3-6':'M9.5 9.5a3 3 0 0 1 4.24 4.24',
+      switchAuthMode:()=>this.setState({authMode:s.authMode==='login'?'signup':'login',authPassword:'',authConfirm:''}),
+      togglePassword:()=>this.setState({showPassword:!s.showPassword}),
+      toggleConfirmPassword:()=>this.setState({showConfirmPassword:!s.showConfirmPassword}),
+      submitAuth:e=>{pv(e);if(!s.authEmail.trim()||!s.authPassword)return this.toast('Please complete the required fields');if(s.authMode==='signup'&&s.authPassword!==s.authConfirm)return this.toast('Passwords do not match');this.toast(s.authMode==='login'?'Login form ready for Supabase Auth':'Sign-up form ready for Supabase Auth');},
+      forgotPassword:()=>this.toast('Password reset will be connected to Supabase Auth next.'),
       steps:[{n:'01',title:'Upload your photo',body:'A clear, front-facing photo in good light. JPG, PNG or WEBP.'},{n:'02',title:'Add a clothing item',body:'Upload a product image or paste its link from any store.'},{n:'03',title:'See it on you',body:'Get a realistic preview in seconds. Download it, save it, or try another.'}],
       // workspace
       noPerson:!p,hasPerson:!!p,pSample:p&&p.kind==='sample',pUpload:p&&p.kind!=='sample',pSrc:p&&p.src,pSrcBg:p&&p.src?`url("${p.src}")`:'none',pName:p&&p.name,
