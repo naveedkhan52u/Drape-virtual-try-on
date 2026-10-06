@@ -109,17 +109,17 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
     </div>
     <div style="display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.3fr);grid-template-rows:repeat(2,minmax(0,1fr));gap:16px;height:clamp(380px,46cqw,560px);position:relative">
       <figure class="blueprint duotone" style="grid-column:1;grid-row:1">
-        <image-slot id="hero-before" shape="rect" placeholder="Original person photo"></image-slot>
+        <img src="/assets/hero/original-girl.webp" alt="Drape virtual try-on model" style="width:100%;height:100%;display:block;object-fit:cover;object-position:center" loading="eager">
         <span style="position:absolute;left:8px;top:8px;z-index:2;background:var(--color-bg);padding:2px 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase">01 · Original</span>
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
       </figure>
       <figure class="blueprint duotone" style="grid-column:1;grid-row:2">
-        <image-slot id="hero-garment" shape="rect" placeholder="Clothing item photo"></image-slot>
+        <img src="{{heroGarmentSrc}}" alt="Drape clothing option" style="width:100%;height:100%;display:block;object-fit:contain;object-position:center;background:var(--color-bg)" loading="eager">
         <span style="position:absolute;left:8px;top:8px;z-index:2;background:var(--color-bg);padding:2px 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase">02 · Clothing</span>
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
       </figure>
       <figure class="blueprint" style="grid-column:2;grid-row:1 / span 2">
-        <image-slot id="hero-after" shape="rect" placeholder="Try-on result (full color)"></image-slot>
+        <img src="{{heroAfterSrc}}" alt="Drape AI virtual try-on result" style="width:100%;height:100%;display:block;object-fit:cover;object-position:center" loading="eager">
         <span style="position:absolute;left:8px;top:8px;z-index:2;background:var(--color-bg);padding:2px 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase">03 · Result</span>
         <span class="tag" style="position:absolute;right:10px;bottom:10px;z-index:2;background:color-mix(in srgb, var(--color-text) 72%, transparent);color:var(--color-bg);pointer-events:none">AI-generated preview</span>
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
@@ -904,13 +904,19 @@ const FAIL={
 };
 const money=n=>n===0?'$0':'$'+n.toFixed(2);
 class Component extends DCLogic {
-  state={screen:'landing',authMode:'login',authEmail:'',authName:'',authPassword:'',authConfirm:'',showPassword:false,showConfirmPassword:false,authBusy:false,authMessage:null,credits:null,used:8,person:null,garment:null,gTab:'upload',urlText:'',urlLoading:false,pErr:null,gErr:null,dragP:false,dragG:false,results:null,filter:'all',view:'compare',split:50,menuOpen:false,acctOpen:false,modal:null,pack:'creator',paying:false,toasts:[],w:1200,failKind:null,attempt:0,confirm:null,currentId:null,priv:{autoDelete:true,training:false},session:null,user:null};
+  state={screen:'landing',authMode:'login',authEmail:'',authName:'',authPassword:'',authConfirm:'',showPassword:false,showConfirmPassword:false,authBusy:false,authMessage:null,credits:null,used:8,person:null,garment:null,gTab:'upload',urlText:'',urlLoading:false,pErr:null,gErr:null,dragP:false,dragG:false,results:null,filter:'all',view:'compare',split:50,menuOpen:false,acctOpen:false,modal:null,pack:'creator',paying:false,toasts:[],w:1200,failKind:null,attempt:0,confirm:null,currentId:null,priv:{autoDelete:true,training:false},session:null,user:null,heroIndex:0};
   rootRef=React.createRef(); howRef=React.createRef(); pIn=React.createRef(); gIn=React.createRef();
   componentDidMount(){
     const el=this.rootRef.current; if(el&&window.ResizeObserver){this.ro=new ResizeObserver(e=>{const w=e[0].contentRect.width; if(Math.abs(w-this.state.w)>1)this.setState({w});}); this.ro.observe(el);}
     this.onDoc=e=>{if(this.state.acctOpen&&!e.target.closest('[aria-label="Account menu"]')&&!e.target.closest('.elev-md'))this.setState({acctOpen:false});};
     document.addEventListener('click',this.onDoc);
+    this.heroTimer=setInterval(()=>this.setState({heroIndex:(this.state.heroIndex+1)%4}),4000);
     this.initSupabaseAuth();
+  }
+  componentWillUnmount(){
+    if(this.ro)this.ro.disconnect();
+    if(this.onDoc)document.removeEventListener('click',this.onDoc);
+    if(this.heroTimer)clearInterval(this.heroTimer);
   }
   async initSupabaseAuth(){
     if(!window.supabase?.createClient)return;
@@ -1172,6 +1178,8 @@ class Component extends DCLogic {
       submitAuth:e=>{pv(e);this.submitAuthAction();},
       forgotPassword:()=>this.setState({authMode:'resetRequest',authPassword:'',authConfirm:'',authMessage:null}),
       steps:[{n:'01',title:'Upload your photo',body:'A clear, front-facing photo in good light. JPG, PNG or WEBP.'},{n:'02',title:'Add a clothing item',body:'Upload a product image or paste its link from any store.'},{n:'03',title:'See it on you',body:'Get a realistic preview in seconds. Download it, save it, or try another.'}],
+      heroGarmentSrc:'/assets/hero/clothing-0'+(s.heroIndex+1)+'.webp',
+      heroAfterSrc:'/assets/hero/result-0'+(s.heroIndex+1)+'.webp',
       // workspace
       noPerson:!p,hasPerson:!!p,pSample:p&&p.kind==='sample',pUpload:p&&p.kind!=='sample',pSrc:p&&p.src,pSrcBg:p&&p.src?`url("${p.src}")`:'none',pName:p&&p.name,
       pErr:s.pErr&&ERR[s.pErr],gErr:s.gErr&&ERR[s.gErr],
