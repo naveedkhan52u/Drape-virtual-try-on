@@ -114,12 +114,18 @@ a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
       </figure>
       <figure class="blueprint duotone" style="grid-column:1;grid-row:2">
-        <img src="{{heroGarmentSrc}}" alt="Drape clothing option" style="width:100%;height:100%;display:block;object-fit:contain;object-position:center;background:var(--color-bg)" loading="eager">
+        <sc-if value="{{heroIndex===0}}" hint-placeholder-val="{{false}}"><img src="/assets/hero/clothing-01.webp" alt="Drape clothing option 1" style="width:100%;height:100%;display:block;object-fit:contain;object-position:center;background:var(--color-bg)" loading="eager"></sc-if>
+        <sc-if value="{{heroIndex===1}}" hint-placeholder-val="{{false}}"><img src="/assets/hero/clothing-02.webp" alt="Drape clothing option 2" style="width:100%;height:100%;display:block;object-fit:contain;object-position:center;background:var(--color-bg)" loading="eager"></sc-if>
+        <sc-if value="{{heroIndex===2}}" hint-placeholder-val="{{false}}"><img src="/assets/hero/clothing-03.webp" alt="Drape clothing option 3" style="width:100%;height:100%;display:block;object-fit:contain;object-position:center;background:var(--color-bg)" loading="eager"></sc-if>
+        <sc-if value="{{heroIndex===3}}" hint-placeholder-val="{{false}}"><img src="/assets/hero/clothing-04.webp" alt="Drape clothing option 4" style="width:100%;height:100%;display:block;object-fit:contain;object-position:center;background:var(--color-bg)" loading="eager"></sc-if>
         <span style="position:absolute;left:8px;top:8px;z-index:2;background:var(--color-bg);padding:2px 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase">02 · Clothing</span>
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
       </figure>
       <figure class="blueprint" style="grid-column:2;grid-row:1 / span 2">
-        <img src="{{heroAfterSrc}}" alt="Drape AI virtual try-on result" style="width:100%;height:100%;display:block;object-fit:cover;object-position:center" loading="eager">
+        <sc-if value="{{heroIndex===0}}" hint-placeholder-val="{{false}}"><img src="/assets/hero/result-01.webp" alt="Drape AI virtual try-on result 1" style="width:100%;height:100%;display:block;object-fit:cover;object-position:center" loading="eager"></sc-if>
+        <sc-if value="{{heroIndex===1}}" hint-placeholder-val="{{false}}"><img src="/assets/hero/result-02.webp" alt="Drape AI virtual try-on result 2" style="width:100%;height:100%;display:block;object-fit:cover;object-position:center" loading="eager"></sc-if>
+        <sc-if value="{{heroIndex===2}}" hint-placeholder-val="{{false}}"><img src="/assets/hero/result-03.webp" alt="Drape AI virtual try-on result 3" style="width:100%;height:100%;display:block;object-fit:cover;object-position:center" loading="eager"></sc-if>
+        <sc-if value="{{heroIndex===3}}" hint-placeholder-val="{{false}}"><img src="/assets/hero/result-04.webp" alt="Drape AI virtual try-on result 4" style="width:100%;height:100%;display:block;object-fit:cover;object-position:center" loading="eager"></sc-if>
         <span style="position:absolute;left:8px;top:8px;z-index:2;background:var(--color-bg);padding:2px 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase">03 · Result</span>
         <span class="tag" style="position:absolute;right:10px;bottom:10px;z-index:2;background:color-mix(in srgb, var(--color-text) 72%, transparent);color:var(--color-bg);pointer-events:none">AI-generated preview</span>
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
@@ -910,7 +916,7 @@ class Component extends DCLogic {
     const el=this.rootRef.current; if(el&&window.ResizeObserver){this.ro=new ResizeObserver(e=>{const w=e[0].contentRect.width; if(Math.abs(w-this.state.w)>1)this.setState({w});}); this.ro.observe(el);}
     this.onDoc=e=>{if(this.state.acctOpen&&!e.target.closest('[aria-label="Account menu"]')&&!e.target.closest('.elev-md'))this.setState({acctOpen:false});};
     document.addEventListener('click',this.onDoc);
-    this.heroTimer=setInterval(()=>this.setState({heroIndex:(this.state.heroIndex+1)%4}),4000);
+    this.heroTimer=setInterval(()=>this.setState({heroIndex:(this.state.heroIndex+1)%4}),3000);
     this.initSupabaseAuth();
   }
   componentWillUnmount(){
