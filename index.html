@@ -18,7 +18,7 @@ body{margin:0;background:var(--color-bg)}
 a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
 @keyframes dvscan{0%{top:4%}50%{top:94%}100%{top:4%}}
 @keyframes dvindet{0%{left:-35%}100%{left:100%}}
-@keyframes dvtoast{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes dvtoast{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes dvheroFade{from{opacity:.15}to{opacity:1}}
 </style>
 </helmet>
 <div ref="{{rootRef}}" style="container-type:inline-size;min-height:100vh;margin:0 auto;max-width:{{frameMax}};background:var(--color-bg);position:relative;font-family:var(--font-body);color:var(--color-text)">
@@ -915,8 +915,15 @@ class Component extends DCLogic {
       this.heroIndex=(this.heroIndex+1)%4;
       const garmentImg=document.getElementById('hero-garment-img');
       const resultImg=document.getElementById('hero-result-img');
-      if(garmentImg)garmentImg.src='/assets/hero/clothing-0'+(this.heroIndex+1)+'.webp';
-      if(resultImg)resultImg.src='/assets/hero/result-0'+(this.heroIndex+1)+'.webp';
+      const nextGarment='/assets/hero/clothing-0'+(this.heroIndex+1)+'.webp';
+      const nextResult='/assets/hero/result-0'+(this.heroIndex+1)+'.webp';
+      [garmentImg,resultImg].forEach((img,idx)=>{
+        if(!img)return;
+        img.style.animation='none';
+        void img.offsetWidth;
+        img.src=idx===0?nextGarment:nextResult;
+        img.style.animation='dvheroFade .7s ease-in-out';
+      });
     },3000);
     this.initSupabaseAuth();
   }
